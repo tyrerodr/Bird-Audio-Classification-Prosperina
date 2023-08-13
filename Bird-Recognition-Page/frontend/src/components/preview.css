@@ -1,0 +1,43 @@
+body {
+    font-family: 'Montserrat', sans-serif;
+  }
+  
+  .font-italic {
+    font-weight: bold;
+    font-style: italic;
+  }
+
+
+  .images-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.button-hover:hover {
+  background-color: #206129; /* Color más oscuro que #48bd5a */
+}
+
+/* styles.css
+
+.container-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  
+
+  
+.card {
+    border: 1px solid #ccc;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+    width: 100%;
+    max-width: 800px;
+    margin-top: 2rem;
+}
+  
+   */

@@ -1,0 +1,2 @@
+# Bird-Audio-Classification-Prosperina
+ The Bird Audio Classification project in Bosque Protector La Prosperina is an exciting initiative that harnesses the power of advanced technologies like TensorFlow, Keras, and Convolutional Neural Networks (CNN) to analyze and classify bird sounds in the pristine environment of Bosque Protector La Prosperina. By leveraging the expertise of machine learning and audio processing, this project aims to contribute significantly to our understanding of the avian biodiversity within this protected forest.
