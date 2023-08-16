@@ -45,17 +45,22 @@ def createSegmentationVectorPredict(segment_dur_secs, signal, sr, split):
     return split
 
 
-def majority_vote(predictions):
+def weighted_majority_vote(predictions):
     if len(predictions) == 0:
         return "Anomaly"
 
     unique_classes, counts = np.unique(predictions, return_counts=True)
-    max_count = np.max(counts)
 
-    if np.sum(counts == max_count) > 1:
+    # Asignar un peso mayor a las clases que no son "Not Detected"
+    class_weights = [2 if cls != "Not Detected" else 1 for cls in unique_classes]
+    weighted_counts = [count * weight for count, weight in zip(counts, class_weights)]
+
+    max_count = np.max(weighted_counts)
+
+    if np.sum(weighted_counts == max_count) > 1:
         return "Anomaly"
 
-    majority_class = unique_classes[np.argmax(counts)]
+    majority_class = unique_classes[np.argmax(weighted_counts)]
     return majority_class
 
 
@@ -118,37 +123,7 @@ def getprediction(file, predictions, timeserie):
                 interval_predictions.append(pred[0])
 
         # Votación Mayoritaria
-        if interval_predictions:  # Verificar si hay predicciones en este intervalo
-            majority_prediction = majority_vote(interval_predictions)
-            if majority_prediction == "Not Detected":
-                scientificname = "Not Detected"
-            elif majority_prediction == "Anomaly":
-                scientificname = "Anomaly"
-            else:
-                scientificname = class_scientificnames[
-                    class_commonnames.index(majority_prediction)
-                ]
-
-            jsonPredictions[
-                file + "/" + seconds_to_time(start_time).strftime("%H:%M:%S")
-            ] = [
-                majority_prediction,
-                scientificname,
-                seconds_to_time(start_time).strftime("%H:%M:%S"),
-                seconds_to_time(end_time).strftime("%H:%M:%S"),
-            ]
-
-    # Procesar el último intervalo si su tiempo excede el límite final
-    last_start_time = (num_intervals - 1) * interval_size
-    last_interval_predictions = []
-    for pred in predictions:
-        pred_time_seconds = time_to_seconds(pred[2])
-        if last_start_time <= pred_time_seconds <= audio_duration:
-            last_interval_predictions.append(pred[0])
-
-    if last_interval_predictions:
-        # Votación Mayoritaria para el último intervalo
-        majority_prediction = majority_vote(last_interval_predictions)
+        majority_prediction = weighted_majority_vote(interval_predictions)
         if majority_prediction == "Not Detected":
             scientificname = "Not Detected"
         elif majority_prediction == "Anomaly":
@@ -157,6 +132,39 @@ def getprediction(file, predictions, timeserie):
             scientificname = class_scientificnames[
                 class_commonnames.index(majority_prediction)
             ]
+
+        jsonPredictions[
+            file + "/" + seconds_to_time(start_time).strftime("%H:%M:%S")
+        ] = [
+            majority_prediction,
+            scientificname,
+            seconds_to_time(start_time).strftime("%H:%M:%S"),
+            seconds_to_time(end_time).strftime("%H:%M:%S"),
+        ]
+
+    # Procesar el último intervalo si su tiempo excede el límite final
+    if end_time > audio_duration:
+        last_start_time = end_time - interval_size  # Inicio del último intervalo
+        last_interval_predictions = []
+        for pred in predictions:
+            pred_time_seconds = time_to_seconds(pred[2])
+            if last_start_time <= pred_time_seconds <= audio_duration:
+                last_interval_predictions.append(pred[0])
+
+        if len(last_interval_predictions) < 4:
+            majority_prediction = "Not Detected"
+            scientificname = "Not Detected"
+        else:
+            # Votación Mayoritaria
+            majority_prediction = weighted_majority_vote(last_interval_predictions)
+            if majority_prediction == "Not Detected":
+                scientificname = "Not Detected"
+            elif majority_prediction == "Anomaly":
+                scientificname = "Anomaly"
+            else:
+                scientificname = class_scientificnames[
+                    class_commonnames.index(majority_prediction)
+                ]
 
         jsonPredictions[
             file + "/" + seconds_to_time(last_start_time).strftime("%H:%M:%S")
@@ -176,7 +184,7 @@ def classifyAudio(file):
     predictions = []
     FILEPATH = os.path.join("audios/", file)
     signal, sr = librosa.load(FILEPATH)
-    # signal = nr.reduce_noise(y=signal, y_noise=signal, prop_decrease=1, sr = sr)
+    # signal = nr.reduce_noise(y=signal, y_noise=signal, prop_decrease=1, sr=sr)
     audio_slices = createSegmentationVectorPredict(2, signal, sr, [])
     timeserie = datetime.timedelta(seconds=0)
     for i in range(len(audio_slices)):

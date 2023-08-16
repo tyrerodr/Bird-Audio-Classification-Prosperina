@@ -194,7 +194,7 @@ function Preview(props) {
                     } else {
                       const startTime =
                         index === 0 ? "0:00:00" : songstimestart[index - 1];
-                      const endTime = songstimestart[index];
+                      const endTime = songstimeend[index - 1];
                       return `Species: ${name}, Time Period: (${startTime} - ${endTime})`;
                     }
                   }
