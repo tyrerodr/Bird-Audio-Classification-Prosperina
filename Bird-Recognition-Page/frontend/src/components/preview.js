@@ -155,6 +155,8 @@ function Preview(props) {
                   key={name}
                   style={{
                     margin: "10px",
+                    fontSize: 18,
+                    // color: "green",
                   }}
                 >
                   <p>
