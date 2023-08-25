@@ -3,15 +3,16 @@ import styled from "styled-components";
 import { keyframes } from "styled-components";
 import Plot from "react-plotly.js";
 import "./preview.css";
-const rotate = keyframes`
-from {
-  transform: rotate(0deg);
-}
 
-to {
-  transform: rotate(360deg);
-}
+const rotate = keyframes`
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 `;
+
 const Container = styled.div`
   display: flex;
   flex-direction: column;
@@ -32,7 +33,7 @@ function Preview(props) {
   const [audioname, setAudioName] = useState("");
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [images, setImages] = useState({});
-
+  const [chartData, setChartData] = useState([]); // New state for chart data
   let commonnames = [];
   let songstimestart = [];
   let songstimeend = [];
@@ -52,12 +53,30 @@ function Preview(props) {
     "Pseudastur occidentalis",
     "Psittacara erythrogenys",
   ];
+
   useEffect(() => {
     fetch("http://127.0.0.1:5000/get_birds")
       .then((res) =>
         res.json().then((data) => {
           // Setting data from api
           setData(data);
+          // Set chart data for CSV export
+          const chartData = Object.entries(data).map((entry) => {
+            const [key, value] = entry;
+            const namebirdaudio = key.split("/")[0];
+            const nameCommPredict = value[0];
+            const nameSciPredict = value[1];
+            const timestart = value[2];
+            const timesend = value[3];
+            return {
+              File_Name: namebirdaudio,
+              Common_Name: removeAccents(nameCommPredict),
+              Scientific_Name: nameSciPredict,
+              Time_Start: timestart,
+              Time_End: timesend,
+            };
+          });
+          setChartData(chartData);
         })
       )
       .catch((error) => {
@@ -107,6 +126,47 @@ function Preview(props) {
     // eslint-disable-next-line
     return value != "Not Detected" && array.indexOf(value) === index;
   }
+
+  function removeAccents(str) {
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  }
+
+  const downloadCSV = () => {
+    if (chartData.length === 0) {
+      alert("No data to download.");
+      return;
+    }
+
+    const fileName = audioname + "_log.csv";
+
+    const fields = [
+      "File_Name",
+      "Common_Name",
+      "Scientific_Name",
+      "Time_Start",
+      "Time_End",
+    ];
+    try {
+      const csvContent = chartData
+        .map((row) => fields.map((field) => row[field]).join(","))
+        .join("\n");
+      const csv = `${fields.join(",")}\n${csvContent}`;
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", fileName);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error("Error creating CSV:", error);
+    }
+  };
 
   return (
     <div className="text-center">
@@ -218,6 +278,13 @@ function Preview(props) {
               hovermode: "closest",
             }}
           />
+          <button
+            className="btn btn-success" /* Agregar la clase button-hover */
+            style={{ backgroundColor: "#2aab56" }}
+            onClick={downloadCSV}
+          >
+            Download CSV
+          </button>
         </Fragment>
       ) : (
         <div className="text-center">

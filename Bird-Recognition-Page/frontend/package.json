@@ -7,6 +7,8 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "axios": "^1.4.0",
+    "json2csv": "^6.0.0-alpha.2",
+    "os-browserify": "^0.3.0",
     "plotly.js": "^2.25.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -15,6 +17,7 @@
     "react-router-dom": "^6.14.2",
     "react-scripts": "5.0.1",
     "reactjs-popup": "^2.0.5",
+    "stream-browserify": "^3.0.0",
     "styled-components": "^6.0.7",
     "web-vitals": "^2.1.4"
   },
