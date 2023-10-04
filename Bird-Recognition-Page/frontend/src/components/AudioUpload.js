@@ -44,17 +44,14 @@ export class AudioUpload extends Component {
     }
 
     this.effectvalue.value = true;
-    // console.log(this.state.audio);
-    e.preventDefault();
     const data = new FormData();
-
     data.append("file", this.state.audio);
     // console.log(data);
     axios
       .post("http://127.0.0.1:5000/upload", data)
       .then((response) => {
         if (response.status === 201) {
-          document.querySelector("#audioForm").reset();
+          // document.querySelector("#audioForm").reset();
         }
         // alert("Successfully Uploaded");
         this.setState({
@@ -74,7 +71,9 @@ export class AudioUpload extends Component {
 
   // file validation
   fileValidate = (file) => {
-    if (file.type === "audio/wav") {
+    if (document.getElementById("audio").files.length === 0) {
+      return false;
+    } else if (file.type === "audio/wav") {
       const button = document.querySelector("#button");
       button.disabled = false;
       toast.success("Audio successfully uploaded", {
@@ -86,7 +85,6 @@ export class AudioUpload extends Component {
     } else {
       const button = document.querySelector("#button");
       button.disabled = true;
-
       toast.error("File type allowed only .wav", {
         position: toast.POSITION.TOP_RIGHT,
         autoClose: 2000,
