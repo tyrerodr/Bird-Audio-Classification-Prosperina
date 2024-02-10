@@ -1,6 +1,6 @@
 import React, { Component } from "react";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
-import { AudioUpload } from "./components/audioUpload.js";
+import { AudioUpload } from "./components/AudioUpload";
 import "./App.css";
 import { ToastContainer } from "react-toastify";
 
