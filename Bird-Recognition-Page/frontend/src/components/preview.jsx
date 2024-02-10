@@ -5,25 +5,7 @@ import Plot from "react-plotly.js";
 import "./preview.css";
 import "./audioDetails";
 import AudioDetails from "./audioDetails";
-
-const rotate = keyframes`
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-`;
-
-const ButtonContainer = styled.div`
-  display: flex;
-  gap: 10px;
-  flex-direction: row;
-
-  @media (max-width: 1300px) {
-    flex-direction: column;
-  }
-`;
+import AudioPlayer from "./audioPlayer";
 
 const Container = styled.div`
   display: flex;
@@ -35,30 +17,20 @@ const Container = styled.div`
   padding-bottom: 0.5rem;
 `;
 
+const rotate = keyframes`
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+`;
+
 const Rotate = styled.div`
   display: inline-block;
   animation: ${rotate} 2s linear infinite;
   padding: 2rem 1rem;
   font-size: 1.2rem;
-`;
-
-const Table = styled.table`
-  width: 100%;
-  margin-top: 1rem;
-  border-collapse: collapse;
-`;
-
-const TableHeader = styled.th`
-  border: 1px solid #ddd;
-  padding: 8px;
-  text-align: center;
-  background-color: #4caf50;
-  color: #fff;
-`;
-
-const TableCell = styled.td`
-  border: 1px solid #ddd;
-  padding: 8px;
 `;
 
 function Preview(props) {
@@ -70,22 +42,24 @@ function Preview(props) {
   const [dataWithSplits, setdataWithSplits] = useState([]);
   const [showSplits, setShowSplits] = useState(false);
   const [showTimeSeries, setShowTimeSeries] = useState(false);
+  let class_commonnames = [
+    "Red-lored Parrot",
+    "Guayaquil Woodpecker",
+    "Pale-browed Tinamou",
+    "Rufous-headed Chachalaca",
+    "Gray-backed Hawk",
+    "Red-masked Parakeet",
+  ];
 
   let commonnames = [];
+  let scinames = [];
   let songstimestart = [];
   let songstimeend = [];
-  let class_commonnames = [
-    "Amazona Frentirroja",
-    "Picamaderos de Guayaquil",
-    "Tinamú Cejudo",
-    "Chachalaca Cabecirrufa",
-    "Busardo Dorsigrís",
-    "Aratinga de Guayaquil",
-  ];
+
   let class_scientificnames = [
-    "Amazona Autamnails",
+    "Amazona autumnalis",
     "Campephilus gayaquilensis",
-    "Crypturellus tansfasciatus",
+    "Crypturellus transfasciatus",
     "Ortalis erythroptera",
     "Pseudastur occidentalis",
     "Psittacara erythrogenys",
@@ -155,7 +129,7 @@ function Preview(props) {
         if (error.response) {
           console.log(error.response);
           if (error.response.status === 401) {
-            alert("Invalid credentials");
+            alert("Credenciales inválidas");
           }
         }
       });
@@ -229,24 +203,31 @@ function Preview(props) {
 
   const downloadCSV = () => {
     if (chartData.length === 0) {
-      alert("No data to download.");
+      alert("No hay datos para descargar.");
       return;
     }
 
     const fileName = audioname + "_log.csv";
 
-    const fields = [
-      "File_Name",
-      "Common_Name",
-      "Scientific_Name",
-      "Time_Start",
-      "Time_End",
-    ];
+    // Mapping object for translation
+    const fieldTranslations = {
+      File_Name: "Nombre_Archivo",
+      Common_Name: "Nombre_Comun",
+      Scientific_Name: "Nombre_Cientifico",
+      Time_Start: "Tiempo_Inicio",
+      Time_End: "Tiempo_Fin",
+    };
+
+    // Use translated field names
+    const fields = Object.keys(fieldTranslations);
+
     try {
       const csvContent = chartData
-        .map((row) => fields.map((field) => row[field]).join(","))
+        .map((row) => fields.map((field) => row[field] || "").join(","))
         .join("\n");
-      const csv = `${fields.join(",")}\n${csvContent}`;
+      const csv = `${fields
+        .map((field) => fieldTranslations[field])
+        .join(",")}\n${csvContent}`;
 
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
@@ -260,8 +241,13 @@ function Preview(props) {
         document.body.removeChild(link);
       }
     } catch (error) {
-      console.error("Error creating CSV:", error);
+      console.error("Error al crear CSV:", error);
     }
+  };
+
+  const timeToSeconds = (timeString) => {
+    const [hours, minutes, seconds] = timeString.split(":").map(Number);
+    return hours * 3600 + minutes * 60 + seconds;
   };
 
   return (
@@ -272,12 +258,14 @@ function Preview(props) {
             const [key, value] = entry;
             const namebirdaudio = key.split("/")[0];
             const nameCommPredict = value[0];
+            const nameSciPredict = value[1];
             const timestart = value[2];
             const timesend = value[3];
             if (audioname === "") {
               setAudioName(namebirdaudio);
             }
             commonnames.push(nameCommPredict);
+            scinames.push(nameSciPredict);
             songstimestart.push(timestart);
             songstimeend.push(timesend);
           })}
@@ -289,7 +277,7 @@ function Preview(props) {
             class_commonnames={class_commonnames}
           />
           <Container className="text-center">
-            <ButtonContainer>
+            <div className="button-container">
               <button
                 className="bg-gray-300 hover:bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded inline-flex items-center"
                 onClick={downloadCSV}
@@ -301,7 +289,7 @@ function Preview(props) {
                 >
                   <path d="M13 8V2H7v6H2l8 8 8-8h-5zM0 18h20v2H0v-2z" />
                 </svg>
-                <span>Download CSV Detections</span>
+                <span>Descargar archivo de detecciones</span>
               </button>
               <button
                 className="bg-gray-300 hover:bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded inline-flex items-center"
@@ -315,13 +303,15 @@ function Preview(props) {
                   <path
                     d="M8 6.00067L21 6.00139M8 12.0007L21 12.0015M8 18.0007L21 18.0015M3.5 6H3.51M3.5 12H3.51M3.5 18H3.51M4 6C4 6.27614 3.77614 6.5 3.5 6.5C3.22386 6.5 3 6.27614 3 6C3 5.72386 3.22386 5.5 3.5 5.5C3.77614 5.5 4 5.72386 4 6ZM4 12C4 12.2761 3.77614 12.5 3.5 12.5C3.22386 12.5 3 12.2761 3 12C3 11.7239 3.22386 11.5 3.5 11.5C3.77614 11.5 4 11.7239 4 12ZM4 18C4 18.2761 3.77614 18.5 3.5 18.5C3.22386 18.5 3 18.2761 3 18C3 17.7239 3.22386 17.5 3.5 17.5C3.77614 17.5 4 17.7239 4 18Z"
                     stroke="#000000"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                   ></path>
                 </svg>
                 <span>
-                  {showSplits ? "Hide List Detections" : "Show List Detections"}
+                  {showSplits
+                    ? "Ocultar lista de detecciones"
+                    : "Mostrar lista de detecciones"}
                 </span>
               </button>
               <button
@@ -337,48 +327,60 @@ function Preview(props) {
                 </svg>
                 <span>
                   {showTimeSeries
-                    ? "Hide Time Serie"
-                    : "Time Serie with Detections"}
+                    ? "Ocultar Gráfico de tiempo de Detecciones"
+                    : "Gráfico de tiempo de Detecciones"}
                 </span>
               </button>
-            </ButtonContainer>
+            </div>
             {console.log(groupedData)}
             {showSplits &&
-              groupedData.map((bird) => (
-                <div key={bird.id}>
-                  <Table>
-                    <thead>
-                      <tr>
-                        <TableHeader>Specie</TableHeader>
-                        <TableHeader>Start Time</TableHeader>
-                        <TableHeader>End Time</TableHeader>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bird.splits.map((split) => (
-                        <tr key={split.splitName}>
-                          <TableCell>{bird.nameCommPredict}</TableCell>
-                          <TableCell>{split.startTime}</TableCell>
-                          <TableCell>{split.endTime}</TableCell>
+              groupedData
+                .filter((bird) => bird.nameCommPredict !== "Not Detected")
+                .map((bird) => (
+                  <div key={bird.id}>
+                    <table className="table">
+                      <thead className="table-header">
+                        <tr>
+                          <th className="table-header">Especie</th>
+                          <th className="table-header">Hora de Inicio</th>
+                          <th className="table-header">Hora de Fin</th>
+                          <th className="table-header">Detección</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </Table>
-                </div>
-              ))}
+                      </thead>
+                      <tbody>
+                        {bird.splits.map((split) => (
+                          <tr key={split.splitName}>
+                            <td className="table-cell">
+                              {bird.nameCommPredict}
+                            </td>
+                            <td className="table-cell">{split.startTime}</td>
+                            <td className="table-cell">{split.endTime}</td>
+                            <td className="table-cell">
+                              <AudioPlayer
+                                audioUrl={`http://127.0.0.1:5000/audios/${audioname}`}
+                                startTime={timeToSeconds(split.startTime)}
+                                endTime={timeToSeconds(split.endTime)}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ))}
             {showTimeSeries && (
               <Plot
                 data={[
                   {
                     x: ["0:00:00", ...songstimeend],
-                    y: ["Not Detected", ...commonnames].map((name) =>
+                    y: ["Not Detected", ...scinames].map((name) =>
                       name === "Not Detected" ? 0 : 1
                     ),
                     mode: "markers",
                     marker: {
                       color: [
                         "green",
-                        ...commonnames.map((name) =>
+                        ...scinames.map((name) =>
                           name === "Anomaly" ? "rgba(255, 0, 0, 0.9)" : "green"
                         ),
                       ],
@@ -387,7 +389,7 @@ function Preview(props) {
                     type: "scatter",
                     fill: "tozeroy",
                     fillcolor: "rgba(0, 128, 0, 0.5)",
-                    hovertext: ["Not Detected", ...commonnames].map(
+                    hovertext: ["Not Detected", ...scinames].map(
                       (name, index) => {
                         if (name === "Not Detected") {
                           return "";
@@ -395,7 +397,7 @@ function Preview(props) {
                           const startTime =
                             index === 0 ? "0:00:00" : songstimestart[index - 1];
                           const endTime = songstimeend[index - 1];
-                          return `Species: ${name}, Time Period: (${startTime} - ${endTime})`;
+                          return `Especie: ${name}, Período de Tiempo: (${startTime} - ${endTime})`;
                         }
                       }
                     ),
@@ -403,14 +405,14 @@ function Preview(props) {
                 ]}
                 layout={{
                   autosize: true,
-                  title: "Bird Detection in Audio Over Time",
+                  title: "Detección de áves en el audio a lo largo del Tiempo",
                   xaxis: {
-                    title: "Time (h:m:s)",
+                    title: "Tiempo (h:m:s)",
                     rangemode: "tozero",
                   },
                   yaxis: {
                     tickvals: [0, 1],
-                    ticktext: ["Not Detected", "Detected"],
+                    ticktext: ["No Detectado", "Detectado"],
                   },
                   hovermode: "closest",
                 }}
@@ -422,7 +424,7 @@ function Preview(props) {
         </Fragment>
       ) : (
         <div className="text-center font-bold">
-          Loading data audio...<Rotate>🦜</Rotate>
+          Cargando datos de audio...<Rotate>🦜</Rotate>
         </div>
       )}
     </div>

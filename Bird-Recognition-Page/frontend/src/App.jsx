@@ -8,17 +8,11 @@ class App extends Component {
   render() {
     return (
       <BrowserRouter>
-        <div className="container mx-auto">
-          <Routes>
-            <Route
-              exact
-              path="/"
-              element={<Navigate to="/bird_recognition" />}
-            />
-            <Route exact path="/bird_recognition" element={<AudioUpload />} />
-          </Routes>
-          <ToastContainer />
-        </div>
+        <Routes>
+          <Route exact path="/" element={<Navigate to="/bird_recognition" />} />
+          <Route exact path="/bird_recognition" element={<AudioUpload />} />
+        </Routes>
+        <ToastContainer />
       </BrowserRouter>
     );
   }

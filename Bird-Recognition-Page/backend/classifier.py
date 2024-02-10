@@ -1,5 +1,4 @@
 import os
-import librosa
 import io
 import numpy as np
 import datetime
@@ -7,22 +6,20 @@ import librosa
 import noisereduce as nr
 from keras.models import load_model
 import tensorflow as tf
-import sys
 
 class_commonnames = [
-    "Amazona Frentirroja",
-    "Picamaderos de Guayaquil",
-    "Tinamú Cejudo",
-    "Chachalaca Cabecirrufa",
-    "Busardo Dorsigrís",
-    "Aratinga de Guayaquil",
+    "Red-lored Parrot",
+    "Guayaquil Woodpecker",
+    "Pale-browed Tinamou",
+    "Rufous-headed Chachalaca",
+    "Gray-backed Hawk",
+    "Red-masked Parakeet",
 ]
 
-
 class_scientificnames = [
-    "Amazona Autamnails",
+    "Amazona autumnalis",
     "Campephilus gayaquilensis",
-    "Crypturellus tansfasciatus",
+    "Crypturellus transfasciatus",
     "Ortalis erythroptera",
     "Pseudastur occidentalis",
     "Psittacara erythrogenys",
@@ -30,6 +27,18 @@ class_scientificnames = [
 
 
 def createSegmentationVectorPredict(segment_dur_secs, signal, sr, split):
+    """
+    Divide una señal de audio en segmentos de duración específica.
+
+    Args:
+        segment_dur_secs (int): Duración deseada de cada segmento en segundos.
+        signal (np.ndarray): Señal de audio.
+        sr (int): Tasa de muestreo de la señal de audio.
+        split (list): Lista para almacenar los segmentos divididos.
+
+    Returns:
+        list: Lista de segmentos divididos.
+    """
     segment_length = sr * segment_dur_secs
     for s in range(0, len(signal), segment_length):
         t = signal[s : s + segment_length]
@@ -46,12 +55,20 @@ def createSegmentationVectorPredict(segment_dur_secs, signal, sr, split):
 
 
 def weighted_majority_vote(predictions):
+    """
+    Realiza un voto ponderado para determinar la clase predicha.
+
+    Args:
+        predictions (list): Lista de predicciones.
+
+    Returns:
+        str: Clase predicha.
+    """
     if len(predictions) == 0:
         return "Anomaly"
 
     unique_classes, counts = np.unique(predictions, return_counts=True)
 
-    # Asignar un peso mayor a las clases que no son "Not Detected"
     class_weights = [2 if cls != "Not Detected" else 1 for cls in unique_classes]
     weighted_counts = [count * weight for count, weight in zip(counts, class_weights)]
 
@@ -65,18 +82,45 @@ def weighted_majority_vote(predictions):
 
 
 def time_to_seconds(time_obj):
+    """
+    Convierte un objeto de tiempo en segundos.
+
+    Args:
+        time_obj (datetime.timedelta): Objeto de tiempo.
+
+    Returns:
+        int: Tiempo en segundos.
+    """
     total_seconds = int(time_obj.total_seconds())
     return total_seconds
 
 
 def seconds_to_time(seconds):
+    """
+    Convierte segundos en un objeto de tiempo.
+
+    Args:
+        seconds (int): Tiempo en segundos.
+
+    Returns:
+        datetime.time: Objeto de tiempo.
+    """
     return datetime.time(
         hour=seconds // 3600, minute=(seconds % 3600) // 60, second=seconds % 60
     )
 
 
 def createSpectogramVector(signal, sr):
-    # Plot mel-spectrogram with high-pass filter
+    """
+    Crea un espectrograma de la señal de audio.
+
+    Args:
+        signal (np.ndarray): Señal de audio.
+        sr (int): Tasa de muestreo de la señal de audio.
+
+    Returns:
+        np.ndarray: Espectrograma normalizado.
+    """
     N_FFT = 1024
     HOP_SIZE = 1024
     N_MELS = 128
@@ -103,16 +147,23 @@ def createSpectogramVector(signal, sr):
     return normalized_spectrogram
 
 
-def getprediction(file, predictions, timeserie):
-    jsonPredictions = {}
-    # Calcular el número de intervalos y el tamaño del intervalo en función de la duración del audio
-    audio_duration = time_to_seconds(timeserie)  # Duración del audio en segundos
-    interval_size = 8  # Tamaño del intervalo en segundos
+def get_prediction(file, predictions, timeserie):
+    """
+    Realiza predicciones para segmentos de audio y agrupa los resultados.
 
-    # Calcular el número de intervalos
+    Args:
+        file (str): Nombre del archivo de audio.
+        predictions (list): Lista de predicciones por segmento.
+        timeserie (datetime.timedelta): Duración total del audio.
+
+    Returns:
+        dict: Predicciones agrupadas por intervalo de tiempo.
+    """
+    jsonPredictions = {}
+    audio_duration = time_to_seconds(timeserie)
+    interval_size = 8
     num_intervals = int(np.ceil(audio_duration / interval_size))
 
-    # Dividir las predicciones en intervalos y aplicar enfoques
     for i in range(num_intervals):
         start_time = i * interval_size
         end_time = (i + 1) * interval_size
@@ -122,7 +173,6 @@ def getprediction(file, predictions, timeserie):
             if start_time < pred_time_seconds <= end_time:
                 interval_predictions.append(pred[0])
 
-        # Votación Mayoritaria
         majority_prediction = weighted_majority_vote(interval_predictions)
         if majority_prediction == "Not Detected":
             scientificname = "Not Detected"
@@ -142,9 +192,8 @@ def getprediction(file, predictions, timeserie):
             seconds_to_time(end_time).strftime("%H:%M:%S"),
         ]
 
-    # Procesar el último intervalo si su tiempo excede el límite final
     if end_time > audio_duration:
-        last_start_time = end_time - interval_size  # Inicio del último intervalo
+        last_start_time = end_time - interval_size
         last_interval_predictions = []
         for pred in predictions:
             pred_time_seconds = time_to_seconds(pred[2])
@@ -155,7 +204,6 @@ def getprediction(file, predictions, timeserie):
             majority_prediction = "Not Detected"
             scientificname = "Not Detected"
         else:
-            # Votación Mayoritaria
             majority_prediction = weighted_majority_vote(last_interval_predictions)
             if majority_prediction == "Not Detected":
                 scientificname = "Not Detected"
@@ -179,12 +227,20 @@ def getprediction(file, predictions, timeserie):
 
 
 def classifyAudio(file):
+    """
+    Clasifica el archivo de audio dado.
+
+    Args:
+        file (str): Nombre del archivo de audio.
+
+    Returns:
+        dict: Predicciones de especies de aves agrupadas por intervalo de tiempo.
+    """
     test_model = tf.keras.models.load_model("model/Bird_Recognition_Prosperina_CNN.h5")
     timeserie = 0
     predictions = []
     FILEPATH = os.path.join("audios/", file)
     signal, sr = librosa.load(FILEPATH)
-    # signal = nr.reduce_noise(y=signal, y_noise=signal, prop_decrease=1, sr=sr)
     audio_slices = createSegmentationVectorPredict(2, signal, sr, [])
     timeserie = datetime.timedelta(seconds=0)
     for i in range(len(audio_slices)):
@@ -200,12 +256,5 @@ def classifyAudio(file):
         else:
             predictions.append(("Not Detected", prediction.max(), timeserie))
 
-    response = getprediction(file, predictions, timeserie)
+    response = get_prediction(file, predictions, timeserie)
     return response
-
-
-# if __name__ == "__main__":
-# response = classifyAudio(
-#     "http://127.0.0.1:5000/81bd4ebf-30e2-4fbb-9e5e-fa17da26e610"
-# )
-# print(response)

@@ -1,4 +1,3 @@
-# C:\flask_dev\flaskreact\app.py
 from flask import Flask, make_response, request, jsonify, send_from_directory, url_for
 from torchvision.io import read_image
 import os
@@ -25,16 +24,37 @@ ALLOWED_EXTENSIONS = set(["wav"])
 
 
 def allowed_file(filename):
+    """
+    Verifica si la extensión del archivo es permitida.
+
+    Args:
+        filename (str): Nombre del archivo.
+
+    Returns:
+        bool: True si la extensión es permitida, False en caso contrario.
+    """
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 @app.route("/")
 def main():
+    """
+    Ruta principal de la aplicación.
+
+    Returns:
+        str: Mensaje de bienvenida.
+    """
     return "Homepage"
 
 
 @app.route("/upload", methods=["POST"])
 def upload_audio():
+    """
+    Ruta para subir archivos de audio.
+
+    Returns:
+        Response: Respuesta JSON que indica el estado de la operación.
+    """
     # check if the post request has the file part
     if "file" not in request.files:
         resp = jsonify({"message": "No file part in the request", "status": "failed"})
@@ -80,6 +100,12 @@ def upload_audio():
 
 @app.route("/get_birds", methods=["GET"])
 def get_prediction():
+    """
+    Ruta para obtener la predicción de las especies de aves.
+
+    Returns:
+        Response: Respuesta JSON que contiene la predicción de las especies de aves.
+    """
     try:
         if len(os.listdir("audios/")) == 1:
             filename = os.listdir("audios/")[0]
@@ -93,20 +119,31 @@ def get_prediction():
 
 @app.route("/images/<filename>", methods=["GET"])
 def get_image(filename):
+    """
+    Ruta para obtener imágenes.
+
+    Args:
+        filename (str): Nombre del archivo de imagen.
+
+    Returns:
+        Response: Respuesta con el archivo de imagen.
+    """
     return send_from_directory("images/", filename)
 
 
 @app.route("/audios/<filename>", methods=["GET"])
 def get_audio(filename):
+    """
+    Ruta para obtener archivos de audio.
+
+    Args:
+        filename (str): Nombre del archivo de audio.
+
+    Returns:
+        Response: Respuesta con el archivo de audio.
+    """
     return send_from_directory("audios/", filename)
 
 
 if __name__ == "__main__":
     app.run(debug=True)
-    # if len(os.listdir("audios/")) == 1:
-    #     filename = os.listdir("audios/")[0]
-    #     # route = "audios/" + filename
-    #     response = classifyAudio(filename)
-    #     # print(route)
-    #     resp = json.dumps(response)
-    #     print(resp)

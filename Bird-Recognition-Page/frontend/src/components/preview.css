@@ -12,4 +12,37 @@ body {
     justify-content: center;
 }
 
+.max-w-screen-3xl {
+  max-width: 1675px;
+}
 
+.button-container {
+  display: flex;
+  gap: 10px;
+  flex-direction: row;
+}
+.rotate {
+  display: inline-block;
+  animation: rotate 2s linear infinite;
+  padding: 2rem 1rem;
+  font-size: 1.2rem;
+}
+
+.table {
+  width: 100%;
+  margin-top: 1rem;
+  border-collapse: collapse;
+}
+
+.table-header {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+  background-color: #4caf50;
+  color: #fff;
+}
+
+.table-cell {
+  border: 1px solid #ddd;
+  padding: 8px;
+}
